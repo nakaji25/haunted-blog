@@ -6,26 +6,15 @@ class BlogsController < ApplicationController
   before_action :set_blog, only: %i[edit update destroy]
 
   def index
-    @blogs = if params[:term].present?
-               Blog.search(params[:term]).published.default_order
-             else
-               Blog.published.default_order
-             end
+    @blogs = Blog.search(params[:term]).published.default_order
   end
 
   def show
-    blog = Blog.find(params[:id])
-    @blog = if !user_signed_in?
-              Blog.find_by!(id: params[:id], secret: false)
-            elsif blog.secret
-              current_user.blogs.find(params[:id])
-            else
-              blog
-            end
+    @blog = Blog.secret_search(current_user).find(params[:id])
   end
 
   def new
-    @blog = current_user.blogs.new
+    @blog = Blog.new
   end
 
   def edit; end
@@ -61,10 +50,7 @@ class BlogsController < ApplicationController
   end
 
   def blog_params
-    if current_user.premium
-      params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
-    else
-      params.require(:blog).permit(:title, :content, :secret)
-    end
+    blog_params = params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+    current_user.premium ? blog_params : blog_params.permit(:title, :content, :secret)
   end
 end

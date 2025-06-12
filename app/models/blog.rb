@@ -10,10 +10,14 @@ class Blog < ApplicationRecord
   scope :published, -> { where('secret = FALSE') }
 
   scope :search, lambda { |term|
-    where('title LIKE (?) OR content LIKE (?)', "%#{sanitize_sql_like(term)}%", "%#{sanitize_sql_like(term)}%")
+    where('title LIKE :term OR content LIKE :term', {term: "%#{sanitize_sql_like(term)}%"}) unless term.nil?
   }
 
   scope :default_order, -> { order(id: :desc) }
+
+  scope :secret_search, lambda{ |user|
+    where(secret: false).or(where(user: user, secret: true))
+  }
 
   def owned_by?(target_user)
     user == target_user
